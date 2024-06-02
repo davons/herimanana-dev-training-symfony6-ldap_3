@@ -4,26 +4,52 @@ security:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        # used to reload user from session & other features (e.g. switch_user)
+        chain_provider:
+            chain:
+                providers: [app_ldap_user_provider, app_user_provider]
+
         app_user_provider:
             entity:
                 class: App\Entity\User
                 property: email
+
+        app_ldap_user_provider:
+            ldap:
+                service: Symfony\Component\Ldap\Ldap
+                base_dn: "dc=example,dc=com"
+                search_dn: "cn=read-only-admin,dc=example,dc=com"
+                search_password: 'password'
+                default_roles: ROLE_USER
+                uid_key: uid
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
         main:
             lazy: true
-            provider: app_user_provider
+            provider: chain_provider
             form_login:
                 login_path: app_login
                 check_path: app_login
                 enable_csrf: true
                 default_target_path: app_home
+              #form_login_ldap:
+                #login_path: app_login
+                #check_path: app_login
+                #service: Symfony\Component\Ldap\Ldap
+                #dn_string: 'uid={username},dc=example,dc=com'
+                #default_target_path: app_home
+            entry_point: form_login
+            custom_authenticator: App\Security\LdapAuthenticator
             logout:
                 path: app_logout
                 target: app_login
+
+            remember_me:
+                secret: '%kernel.secret%'
+                lifetime: 604800
+                path: /
+                always_remember_me: true
                 # where to redirect after logout
                 # target: app_any_route
 

@@ -22,3 +22,24 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    Symfony\Component\Ldap\Ldap:
+        arguments: ['@Symfony\Component\Ldap\Adapter\ExtLdap\Adapter']
+        tags:
+            - ldap
+    Symfony\Component\Ldap\Adapter\ExtLdap\Adapter:
+        arguments:
+            -   host: ldap.forumsys.com
+                port: 389
+                #encryption: tls
+                options:
+                    protocol_version: 3
+                    referrals: false
+
+    # LdapAuthenticator
+    App\Security\LdapAuthenticator:
+        arguments:
+            $ldap: '@Symfony\Component\Ldap\Ldap'
+            $urlGenerator: '@router.default'
+            $entityManager: '@doctrine.orm.entity_manager'
+            $userProvider: '@security.user.provider.concrete.chain_provider'
